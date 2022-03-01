@@ -4,6 +4,14 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
+void gaussianFilterCallback(cv::Mat &originalImage, 
+                            cv::Mat &outputImage,
+                            int &gaussianFilterSize)
+{
+    int filterSize = 2*gaussianFilterSize + 1;
+    cv::GaussianBlur(originalImage, outputImage, cv::Size(filterSize, filterSize), 0, 0);
+}
+
 void tracking(cv::Mat outputImage, cv::Mat binaryImage)
 {
     std::vector<std::vector<cv::Point>> contours;
@@ -39,6 +47,7 @@ int main(int argc, char *argv[])
 {
     cv::VideoCapture webcam(0, cv::CAP_V4L2);
     cv::namedWindow("originalVideo", cv::WINDOW_AUTOSIZE);
+    cv::namedWindow("gaussianFrame", cv::WINDOW_AUTOSIZE);
     cv::namedWindow("hsvVideo", cv::WINDOW_AUTOSIZE);
     cv::namedWindow("control", cv::WINDOW_NORMAL);
     cv::namedWindow("mask", cv::WINDOW_AUTOSIZE);
@@ -55,7 +64,6 @@ int main(int argc, char *argv[])
 
     int hLow = 0, sLow = 92, vLow = 135;
     int hHigh = 50, sHigh = 255, vHigh = 255;
-
     cv::createTrackbar("hLow", "control", &hLow, 255);
     cv::createTrackbar("hHigh", "control", &hHigh, 255);
     cv::createTrackbar("sLow", "control", &sLow, 255);
@@ -63,15 +71,18 @@ int main(int argc, char *argv[])
     cv::createTrackbar("vLow", "control", &vLow, 255);
     cv::createTrackbar("vHigh", "control", &vHigh, 255);
 
+    int gaussianFilterSize = 0;
+    cv::createTrackbar("gaussianFilterSize", "control", &gaussianFilterSize, 100);
+
     while(true)
     {
-        cv::Mat frame, hsvFrame, thresholdFrame;
+        cv::Mat frame, gaussianFrame, hsvFrame, thresholdFrame;
 
         webcam.read(frame);
 
-        cv::GaussianBlur(frame, hsvFrame, cv::Size(5, 5), 0, 0);
+        gaussianFilterCallback(frame, gaussianFrame, gaussianFilterSize);
 
-        cv::cvtColor(frame,
+        cv::cvtColor(gaussianFrame,
                      hsvFrame,
                      cv::COLOR_BGR2HSV);
 
@@ -93,6 +104,7 @@ int main(int argc, char *argv[])
         cv:tracking(frame, thresholdFrame);
 
         cv::imshow("originalVideo", frame);
+        cv::imshow("gaussianFrame", gaussianFrame);
         cv::imshow("hsvVideo", hsvFrame);
         cv::imshow("mask", thresholdFrame);
 
