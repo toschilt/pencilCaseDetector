@@ -12,7 +12,9 @@ void gaussianFilterCallback(cv::Mat &originalImage,
     cv::GaussianBlur(originalImage, outputImage, cv::Size(filterSize, filterSize), 0, 0);
 }
 
-void tracking(cv::Mat outputImage, cv::Mat binaryImage)
+void tracking(cv::Mat &outputImage,
+              cv::Mat &binaryImage,
+              int &areaThreshold)
 {
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarchy;
@@ -35,7 +37,7 @@ void tracking(cv::Mat outputImage, cv::Mat binaryImage)
 
     for(int i = 0; i < contours.size(); i++)
     {
-        if(cv::contourArea(contours[i]) > 500)
+        if(cv::contourArea(contours[i]) > areaThreshold)
         {
             cv::drawContours(outputImage, contours, i, cv::Scalar(0, 0, 255), 2, 8, hierarchy, 0, cv::Point());
             cv::circle(outputImage, centroids[i], 5, cv::Scalar(0, 255, 0), -1);
@@ -71,8 +73,15 @@ int main(int argc, char *argv[])
     cv::createTrackbar("vLow", "control", &vLow, 255);
     cv::createTrackbar("vHigh", "control", &vHigh, 255);
 
-    int gaussianFilterSize = 0;
-    cv::createTrackbar("gaussianFilterSize", "control", &gaussianFilterSize, 100);
+    int gaussianFilterSize = 28;
+    cv::createTrackbar("gaussianFilterSize", "control", &gaussianFilterSize, 200);
+
+    int erodeSize = 28, dilateSize = 28;
+    cv::createTrackbar("erodeSize", "control", &erodeSize, 200);
+    cv::createTrackbar("dilateSize", "control", &dilateSize, 200);
+
+    int areaThreshold = 500;
+    cv::createTrackbar("areaThreshold", "control", &areaThreshold, 1000);
 
     while(true)
     {
@@ -94,14 +103,14 @@ int main(int argc, char *argv[])
         cv::erode(thresholdFrame,
                   thresholdFrame,
                   cv::getStructuringElement(cv::MORPH_ELLIPSE, 
-                                            cv::Size(5, 5)));
+                                            cv::Size(erodeSize*2 + 1, erodeSize*2 + 1)));
 
         cv::dilate(thresholdFrame,
                    thresholdFrame,
                    cv::getStructuringElement(cv::MORPH_ELLIPSE, 
-                                             cv::Size(5, 5)));
+                                             cv::Size(dilateSize*2 + 1, dilateSize*2 + 1)));
 
-        cv:tracking(frame, thresholdFrame);
+        cv:tracking(frame, thresholdFrame, areaThreshold);
 
         cv::imshow("originalVideo", frame);
         cv::imshow("gaussianFrame", gaussianFrame);
